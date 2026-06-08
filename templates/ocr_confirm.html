@@ -1,0 +1,205 @@
+{% extends "base.html" %}
+
+{% block content %}
+<style>
+    .extracted-data {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 30px;
+        border-radius: 15px;
+        margin: 20px 0;
+    }
+    .data-row {
+        display: flex;
+        justify-content: space-between;
+        padding: 10px 0;
+        border-bottom: 1px solid rgba(255,255,255,0.2);
+    }
+    .edit-form {
+        background: #f9f9f9;
+        padding: 25px;
+        border-radius: 10px;
+        margin-top: 20px;
+    }
+    .form-group {
+        margin-bottom: 20px;
+    }
+    .form-group label {
+        display: block;
+        margin-bottom: 5px;
+        font-weight: bold;
+        color: #333;
+    }
+    .form-group input, .form-group select, .form-group textarea {
+        width: 100%;
+        padding: 10px;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        font-size: 14px;
+    }
+    .btn-confirm {
+        background: #28a745;
+        color: white;
+        padding: 12px 30px;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        margin-right: 10px;
+        font-weight: bold;
+    }
+    .btn-cancel {
+        background: #dc3545;
+        color: white;
+        padding: 12px 30px;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        text-decoration: none;
+        display: inline-block;
+        font-weight: bold;
+    }
+
+    /* Debug Box Styles */
+    .debug-box {
+        background: #f8f9fa;
+        border: 1px solid #dee2e6;
+        border-radius: 10px;
+        padding: 15px;
+        margin: 20px 0;
+    }
+    .debug-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 10px;
+    }
+    .confidence-badge {
+        background: #e9ecef;
+        padding: 2px 8px;
+        border-radius: 12px;
+        font-size: 11px;
+    }
+    .raw-text-container {
+        background: #fff;
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+        padding: 12px;
+        max-height: 200px;
+        overflow-y: auto;
+    }
+    .raw-text {
+        margin: 0;
+        font-family: 'Consolas', monospace;
+        font-size: 12px;
+        white-space: pre-wrap;
+        word-wrap: break-word;
+        color: #212529;
+    }
+    .stats-bar {
+        margin-top: 10px;
+        display: flex;
+        gap: 15px;
+        font-size: 12px;
+        color: #6c757d;
+    }
+    .tip-box {
+        background: #fff3cd;
+        border-left: 4px solid #ffc107;
+        padding: 10px;
+        margin-top: 10px;
+        border-radius: 5px;
+    }
+</style>
+
+<div class="container">
+    <h2>📸 OCR Extraction Results</h2>
+
+    <div class="extracted-data">
+        <h3>📊 Extracted Information:</h3>
+        <div class="data-row">
+            <span>💰 Amount:</span>
+            <span><strong>{{ "%.2f"|format(extracted.amount) }} ETB</strong></span>
+        </div>
+        <div class="data-row">
+            <span>📅 Date:</span>
+            <span><strong>{{ extracted.date }}</strong></span>
+        </div>
+        <div class="data-row">
+            <span>📝 Description:</span>
+            <span><strong>{{ extracted.description[:100] }}</strong></span>
+        </div>
+        <div class="data-row">
+            <span>🤖 Suggested Category:</span>
+            <span><strong>{{ get_auto_category(extracted.description) }}</strong></span>
+        </div>
+    </div>
+
+    <!-- IMPROVED DEBUG BOX -->
+    <div class="debug-box">
+        <div class="debug-header">
+            <p style="margin: 0; font-weight: bold; color: #495057;">
+                <i class="fas fa-microscope" style="color: #667eea;"></i>
+                🔍 OCR Extracted Text (Raw)
+            </p>
+            <span class="confidence-badge">
+                {{ extracted.confidence if extracted.confidence else 'Medium' }} Confidence
+            </span>
+        </div>
+
+        <div class="raw-text-container">
+            <pre class="raw-text">{{ extracted.raw_text[:800] if extracted.raw_text else '⚠️ No text extracted from image' }}</pre>
+        </div>
+
+        <div class="stats-bar">
+            <span><i class="fas fa-info-circle"></i> Characters: {{ extracted.raw_text|length if extracted.raw_text else 0 }}</span>
+            <span><i class="fas fa-chart-line"></i> Status: {{ 'Success' if extracted.amount > 0 else 'Check manually' }}</span>
+        </div>
+
+        {% if extracted.amount == 0 %}
+        <div class="tip-box">
+            <i class="fas fa-exclamation-triangle" style="color: #856404;"></i>
+            <strong style="color: #856404;">Tip:</strong> No amount detected. Make sure your screenshot has clear numbers with "ETB" and the amount is clearly visible.
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="edit-form">
+        <h3>✏️ Verify & Edit (if needed):</h3>
+
+        <form method="POST" action="{{ url_for('confirm_ocr') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="form-group">
+                <label>💰 Amount (ETB):</label>
+                <input type="number" name="amount" step="0.01" value="{{ extracted.amount }}" required>
+            </div>
+
+            <div class="form-group">
+                <label>📝 Description:</label>
+                <textarea name="description" rows="2" required>{{ extracted.description }}</textarea>
+            </div>
+
+            <div class="form-group">
+                <label>📅 Date:</label>
+                <input type="date" name="date" value="{{ extracted.date }}" required>
+            </div>
+
+            <div class="form-group">
+                <label>🏷️ Category:</label>
+                <select name="category">
+                    <option value="Other">🤖 Let AI Decide</option>
+                    <option value="Food">🥘 Food</option>
+                    <option value="Transport">🚗 Transport</option>
+                    <option value="Utilities">💡 Utilities</option>
+                    <option value="Shopping">🛍️ Shopping</option>
+                    <option value="Healthcare">🏥 Healthcare</option>
+                </select>
+            </div>
+
+            <div style="display: flex; gap: 10px;">
+                <button type="submit" class="btn-confirm">✅ Confirm & Save</button>
+                <a href="{{ url_for('add_expense_page') }}" class="btn-cancel">✗ Cancel & Retry</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

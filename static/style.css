@@ -1,0 +1,161 @@
+/* Minimal additional styles - mostly handled in base.html now */
+
+:root {
+    --green: #2e7d32;
+    --yellow: #f9a825;
+    --red: #c62828;
+    --dark: #1a1a2e;
+    --light: #f5f5f5;
+    --gray: #757575;
+}
+
+/* Any additional page-specific styles can go here */
+
+/* Chart.js canvas styling */
+canvas {
+    max-height: 250px;
+    width: 100%;
+}
+
+/* Form styling for add expense */
+.form-container {
+    background: white;
+    padding: 25px;
+    border-radius: 12px;
+    border: 1px solid #eee;
+    max-width: 500px;
+    margin: 0 auto;
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 500;
+    color: var(--dark);
+}
+
+.form-group input, .form-group select, .form-group textarea {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+}
+
+.btn-submit {
+    background: var(--green);
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 8px;
+    cursor: pointer;
+    width: 100%;
+}
+
+.btn-submit:hover {
+    background: #1b5e20;
+}
+
+.method-selector {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.method-btn {
+    padding: 8px 20px;
+    background: #f0f0f0;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+}
+
+.method-btn.active {
+    background: var(--green);
+    color: white;
+}
+
+.table-container {
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    border: 1px solid #eee;
+    overflow-x: auto;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+th, td {
+    padding: 12px;
+    text-align: left;
+    border-bottom: 1px solid #eee;
+}
+
+.delete-btn {
+    background: var(--red);
+    color: white;
+    padding: 4px 10px;
+    border-radius: 6px;
+    text-decoration: none;
+    font-size: 12px;
+}
+
+.filter-bar {
+    background: white;
+    padding: 15px;
+    border-radius: 12px;
+    margin-bottom: 20px;
+    border: 1px solid #eee;
+}
+.stat-card {
+    background: white;
+    border-radius: 16px;
+    padding: 16px;
+    text-align: center;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    transition: transform 0.2s;
+}
+
+.stat-card .value {
+    font-size: 28px;
+    font-weight: bold;
+    color: var(--dark);
+    word-break: break-word;
+}
+
+.stat-card .small {
+    font-size: 14px;
+    font-weight: normal;
+}
+
+.stat-card .sub-text {
+    font-size: 11px;
+    color: var(--gray);
+    margin-top: 5px;
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+    margin-bottom: 30px;
+}
+
+@media (max-width: 480px) {
+    .stats-grid {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+    .stat-card {
+        padding: 12px;
+    }
+    .stat-card .value {
+        font-size: 24px;
+    }
+}

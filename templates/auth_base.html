@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Expense Tracker - Authentication</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="manifest" href="/manifest.json">
+
+    <style>
+        :root {
+            --bg-canvas: #f4f7f6;       /* Peaceful, crisp off-white canvas matching dashboard background */
+            --surface-white: #ffffff;  /* Pure white card workspace */
+            --brand-dark: #1e272e;     /* Premium deep slate black for the manifesto sidebar */
+            --text-main: #2c3e50;      /* Clear deep charcoal for readability */
+            --text-muted: #7f8c8d;     /* Soft slate grey for placeholders and icons */
+            --border-clean: #e9ecef;   /* Gentle separator lines */
+            --accent-green: #2ed573;   /* Signature growth green accent color */
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background-color: var(--bg-canvas);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+        }
+
+        /* Unified Floating Container: Locks height of left and right panels together */
+        .auth-container {
+            display: flex;
+            width: 100%;
+            max-width: 900px;
+            background-color: var(--surface-white);
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+            overflow: hidden; /* Ensures inner corner items match container border radius */
+        }
+
+        /* Left Brand Side Panel: Adapts length directly to right-side form content height */
+        .brand-panel {
+            flex: 1;
+            background-color: var(--brand-dark);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            padding: 48px;
+            position: relative;
+        }
+
+        /* Subtle glowing radial background highlight */
+        .brand-panel::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: radial-gradient(circle at 10% 20%, rgba(46, 213, 115, 0.07) 0%, transparent 70%);
+            pointer-events: none;
+        }
+
+        .brand-panel-logo {
+            font-size: 36px;
+            color: var(--surface-white);
+            margin-bottom: 20px;
+            z-index: 1;
+        }
+
+        .brand-panel-title {
+            font-size: 28px;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            color: var(--surface-white);
+            margin-bottom: 16px;
+            z-index: 1;
+        }
+
+        .brand-panel-manifesto {
+            font-size: 15px;
+            font-style: italic;
+            line-height: 1.6;
+            color: #b2bec3;
+            max-width: 280px;
+            border-left: 3px solid var(--accent-green);
+            padding-left: 16px;
+            z-index: 1;
+        }
+
+        /* Right Form Work Panel */
+        .form-panel {
+            flex: 1.1;
+            background-color: var(--surface-white);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            padding: 48px;
+        }
+
+        /* Form Item Typography & Control Styling */
+        .form-label {
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.8px;
+            color: var(--text-main);
+            text-transform: uppercase;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+        }
+
+        .form-label i {
+            margin-right: 8px;
+            font-size: 12px;
+        }
+
+        .form-control {
+            background-color: #f8f9fa;
+            border: 1px solid var(--border-clean);
+            color: var(--text-main) !important;
+            border-radius: 8px;
+            padding: 12px 16px;
+            font-size: 15px;
+            transition: all 0.2s ease;
+        }
+
+        .form-control:focus {
+            background-color: var(--surface-white);
+            border-color: var(--brand-dark);
+            box-shadow: 0 0 0 4px rgba(30, 39, 46, 0.05);
+            outline: none;
+        }
+
+        .form-control::placeholder {
+            color: var(--text-muted);
+            opacity: 0.6;
+        }
+
+        /* Action Button */
+        .btn-auth {
+            background-color: var(--brand-dark);
+            color: var(--surface-white);
+            font-size: 15px;
+            font-weight: 600;
+            border: none;
+            border-radius: 8px;
+            padding: 14px 24px;
+            width: 100%;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+
+        .btn-auth:hover {
+            background-color: #2d3436;
+            color: var(--surface-white);
+        }
+
+        /* Notification Alert Systems */
+        .alert {
+            background-color: #f8f9fa;
+            border: 1px solid var(--border-clean);
+            color: var(--text-main);
+            border-radius: 8px;
+            padding: 12px 16px;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+
+        .alert-danger {
+            background-color: #fff5f5;
+            border-color: #feb2b2;
+            color: #c53030;
+        }
+
+        .alert-success {
+            background-color: #f0fff4;
+            border-color: #9ae6b4;
+            color: #22543d;
+        }
+
+        hr {
+            border-color: var(--border-clean);
+            opacity: 1;
+            margin: 24px 0;
+        }
+
+        .auth-link {
+            color: var(--brand-dark);
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .auth-link:hover {
+            text-decoration: underline;
+        }
+
+        .text-accent {
+            color: var(--accent-green) !important;
+        }
+
+        /* Fluid Design adjustments for mobile screens */
+        @media (max-width: 768px) {
+            .auth-container {
+                flex-direction: column;
+                max-width: 450px;
+            }
+            .brand-panel {
+                padding: 32px;
+            }
+            .brand-panel-manifesto {
+                max-width: 100%;
+            }
+            .form-panel {
+                padding: 32px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="auth-container">
+        <div class="brand-panel">
+            <div class="brand-panel-logo"><i class="fa-solid fa-chart-line text-accent"></i></div>
+            <div class="brand-panel-title">Expense Tracker</div>
+            <div class="brand-panel-manifesto">Growth requires discipline. Discipline requires tracking.</div>
+        </div>
+
+        <div class="form-panel">
+            {% block content %}{% endblock %}
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const showPasswordCheckbox = document.getElementById('showPassword');
+        if (!showPasswordCheckbox) return;
+
+        document.querySelectorAll('input[name="password"], input[name="confirm_password"]').forEach(function (input) {
+            input.setAttribute('data-password-field', 'true');
+        });
+
+        showPasswordCheckbox.addEventListener('change', function () {
+            const type = this.checked ? 'text' : 'password';
+            document.querySelectorAll('[data-password-field="true"]').forEach(function (input) {
+                input.setAttribute('type', type);
+            });
+        });
+    });
+</script>
+</body>
+</html>

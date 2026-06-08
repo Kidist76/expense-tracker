@@ -1,0 +1,209 @@
+{% extends "base.html" %}
+
+{% block content %}
+<style>
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 20px;
+        margin-bottom: 30px;
+    }
+    .stat-card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 20px;
+        border-radius: 10px;
+        text-align: center;
+    }
+    .stat-card h3 {
+        margin: 0 0 10px 0;
+        font-size: 16px;
+        opacity: 0.9;
+    }
+    .stat-card .amount {
+        font-size: 32px;
+        font-weight: bold;
+        margin: 0;
+    }
+    .chart-container {
+        background: white;
+        padding: 20px;
+        border-radius: 10px;
+        margin-bottom: 30px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .category-list {
+        background: white;
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .category-item {
+        padding: 15px;
+        border-bottom: 1px solid #e0e0e0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .category-name {
+        font-weight: bold;
+        width: 120px;
+    }
+    .category-amount {
+        width: 100px;
+        text-align: right;
+    }
+    .progress-bar-container {
+        flex: 1;
+        margin: 0 20px;
+        height: 30px;
+        background: #e0e0e0;
+        border-radius: 15px;
+        overflow: hidden;
+    }
+    .progress-bar {
+        height: 100%;
+        background: linear-gradient(90deg, #667eea, #764ba2);
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        padding-right: 10px;
+        color: white;
+        font-size: 12px;
+        transition: width 1s ease;
+    }
+    .date-filter {
+        margin-bottom: 20px;
+        text-align: right;
+    }
+    .date-filter select {
+        padding: 8px;
+        border-radius: 5px;
+        border: 1px solid #ddd;
+    }
+</style>
+
+<div class="container">
+    <h2>📊 Spending Analytics</h2>
+    
+    <div class="date-filter">
+        <label>View: </label>
+        <select id="timeFilter" onchange="changeTimeFrame()">
+            <option value="week">Last 7 Days</option>
+            <option value="month" selected>This Month</option>
+            <option value="year">This Year</option>
+            <option value="all">All Time</option>
+        </select>
+    </div>
+    
+    <div class="stats-grid">
+        <div class="stat-card">
+            <h3>💰 Total Spent</h3>
+            <p class="amount">ETB {{ "%.2f"|format(total_spent) }}</p>
+        </div>
+        <div class="stat-card">
+            <h3>📊 Monthly Average</h3>
+            <p class="amount">ETB {{ "%.2f"|format(monthly_avg) }}</p>
+        </div>
+        <div class="stat-card">
+            <h3>🏷️ Total Categories</h3>
+            <p class="amount">{{ category_count }}</p>
+        </div>
+        <div class="stat-card">
+            <h3>📝 Total Transactions</h3>
+            <p class="amount">{{ transaction_count }}</p>
+        </div>
+    </div>
+    
+    <div class="chart-container">
+        <h3>📈 Category Distribution</h3>
+        <canvas id="categoryChart" width="400" height="200"></canvas>
+    </div>
+    
+    <div class="chart-container">
+        <h3>📅 Monthly Spending Trend</h3>
+        <canvas id="trendChart" width="400" height="200"></canvas>
+    </div>
+    
+    <h3>🏷️ Spending by Category</h3>
+    <div class="category-list">
+        {% for cat in category_breakdown %}
+        <div class="category-item">
+            <span class="category-name">{{ cat.name }}</span>
+            <span class="category-amount">ETB {{ "%.2f"|format(cat.amount) }}</span>
+            <div class="progress-bar-container">
+                <div class="progress-bar" style="width: {{ cat.percentage }}%">
+                    {{ "%.1f"|format(cat.percentage) }}%
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+// Category Chart (Pie)
+const ctx1 = document.getElementById('categoryChart').getContext('2d');
+new Chart(ctx1, {
+    type: 'pie',
+    data: {
+        labels: {{ categories|tojson }},
+        datasets: [{
+            data: {{ category_amounts|tojson }},
+            backgroundColor: [
+                '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0',
+                '#9966FF', '#FF9F40', '#66BB6A', '#FF6B6B'
+            ]
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: {
+            legend: {
+                position: 'bottom'
+            }
+        }
+    }
+});
+
+// Trend Chart (Line)
+const ctx2 = document.getElementById('trendChart').getContext('2d');
+new Chart(ctx2, {
+    type: 'line',
+    data: {
+        labels: {{ months|tojson }},
+        datasets: [{
+            label: 'Monthly Spending (ETB)',
+            data: {{ monthly_spending|tojson }},
+            borderColor: '#667eea',
+            backgroundColor: 'rgba(102, 126, 234, 0.1)',
+            tension: 0.4,
+            fill: true
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: {
+            legend: {
+                position: 'top'
+            }
+        },
+        scales: {
+            y: {
+                beginAtZero: true,
+                title: {
+                    display: true,
+                    text: 'Amount (ETB)'
+                }
+            }
+        }
+    }
+});
+
+function changeTimeFrame() {
+    const filter = document.getElementById('timeFilter').value;
+    window.location.href = "{{ url_for('analytics') }}?filter=" + filter;
+}
+</script>
+{% endblock %}

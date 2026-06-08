@@ -1,0 +1,64 @@
+{% extends "auth_base.html" %}
+
+{% block content %}
+<div class="w-100">
+    <div class="mb-4">
+        <h3 class="fw-bold tracking-tight mb-1" style="font-size: 24px;">Sign In</h3>
+        <p class="text-muted small mb-0">Enter your credentials to access your dashboard.</p>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                    <i class="fas fa-{% if category == 'success' %}check-circle{% elif category == 'danger' %}exclamation-circle{% else %}info-circle{% endif %} me-2"></i>
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <form method="POST" action="{{ url_for('login') }}">
+        <div class="mb-3">
+            <label class="form-label">
+                Username
+            </label>
+            <input type="text" name="username" class="form-control"
+                   placeholder="Enter your username" required>
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">
+                Password
+            </label>
+            <input type="password" name="password" class="form-control"
+                   id="password" placeholder="Enter your password" required>
+        </div>
+
+        <!-- Show Password Checkbox -->
+        <div class="mb-4 form-check">
+            <input type="checkbox" class="form-check-input" id="showPassword">
+            <label class="form-check-label" for="showPassword">
+                 Show Password
+            </label>
+        </div>
+
+        <button type="submit" class="btn-auth">
+            Sign In <i class="fas fa-arrow-right ms-2 small"></i>
+        </button>
+    </form>
+
+    <hr>
+
+    <div class="d-flex flex-column align-items-center gap-2 small">
+        <p class="mb-0 text-muted">
+            Don't have an account?
+            <a href="{{ url_for('register') }}" class="auth-link">Register</a>
+        </p>
+        <p class="mb-0">
+            <a href="{{ url_for('forgot_password') }}" class="auth-link text-muted" style="font-weight: 400; font-size: 13px;">Forgot Password?</a>
+        </p>
+    </div>
+</div>
+{% endblock %}

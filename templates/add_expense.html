@@ -1,0 +1,160 @@
+{% extends "base.html" %}
+
+{% block content %}
+<style>
+    .method-selector {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 30px;
+        border-bottom: 2px solid #e0e0e0;
+        padding-bottom: 10px;
+    }
+    .method-btn {
+        padding: 10px 20px;
+        background: none;
+        border: none;
+        cursor: pointer;
+        font-size: 16px;
+        color: #666;
+        transition: all 0.3s;
+    }
+    .method-btn.active {
+        color: #007bff;
+        border-bottom: 3px solid #007bff;
+        font-weight: bold;
+    }
+    .form-container {
+        background: #f9f9f9;
+        padding: 25px;
+        border-radius: 10px;
+        max-width: 500px;
+        margin: 0 auto;
+    }
+    .form-group {
+        margin-bottom: 20px;
+    }
+    .form-group label {
+        display: block;
+        margin-bottom: 5px;
+        font-weight: bold;
+        color: #333;
+    }
+    .form-group input, .form-group select {
+        width: 100%;
+        padding: 10px;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        font-size: 14px;
+    }
+    .btn-submit {
+        background: #28a745;
+        color: white;
+        padding: 12px 30px;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 16px;
+        width: 100%;
+    }
+    .btn-submit:hover {
+        background: #218838;
+    }
+    .ocr-preview {
+        margin-top: 20px;
+        padding: 15px;
+        background: #fff;
+        border: 1px dashed #ddd;
+        border-radius: 5px;
+        text-align: center;
+    }
+</style>
+
+<div class="container">
+    <h2>➕ Add New Expense</h2>
+
+    <div class="method-selector">
+        <button class="method-btn active" onclick="showMethod('manual')">✏️ Manual Entry</button>
+        <button class="method-btn" onclick="showMethod('ocr')">📷 Upload Screenshot (OCR)</button>
+    </div>
+
+    <!-- Manual Entry Form -->
+    <div id="manual-form" class="form-container">
+        <form method="POST" action="{{ url_for('add_expense') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="form-group">
+                <label>💰 Amount (ETB):</label>
+                <input type="number" name="amount" step="0.01" required placeholder="e.g., 500.00">
+            </div>
+
+            <div class="form-group">
+                <label>📝 Description:</label>
+                <input type="text" name="description" required placeholder="e.g., Lunch, Taxi, Shopping">
+            </div>
+
+            <div class="form-group">
+                <label>📅 Date:</label>
+                <input type="date" name="date" required>
+            </div>
+
+            <div class="form-group">
+                <label>🏷️ Category:</label>
+                <select name="category">
+                    <option value="Other" selected>📌 Let AI Categorize (Recommended)</option>
+                    <option value="Food">🥘Food</option>
+                    <option value="Transport">🚗 Transport</option>
+                    <option value="Utilities">💡 Utilities</option>
+                    <option value="Shopping">🛍️ Shopping</option>
+                    <option value="Healthcare">🏥 Healthcare</option>
+                    <option value="Education">📚 Education</option>
+                </select>
+            </div>
+
+            <button type="submit" class="btn-submit">💾 Save Expense</button>
+        </form>
+    </div>
+
+    <!-- OCR Upload Form -->
+    <div id="ocr-form" class="form-container" style="display:none">
+        <form method="POST" action="{{ url_for('upload_ocr') }}" enctype="multipart/form-data">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="form-group">
+                <label>📸 Upload Screenshot:</label>
+                <input type="file" name="screenshot" accept="image/*,.png,.jpg,.jpeg" required>
+            </div>
+
+            <button type="submit" class="btn-submit">🔍 Extract with OCR</button>
+        </form>
+    </div>
+</div>
+
+<script>
+        document.getElementById('manualBtn').addEventListener('click', function() {
+        showMethod('manual');
+    });
+    document.getElementById('ocrBtn').addEventListener('click', function() {
+        showMethod('ocr');
+    });
+
+function showMethod(method) {
+    const btns = document.querySelectorAll('.method-btn');
+    btns.forEach(btn => btn.classList.remove('active'));
+    event.target.classList.add('active');
+
+    if (method === 'manual') {
+        document.getElementById('manual-form').style.display = 'block';
+        document.getElementById('ocr-form').style.display = 'none';
+    } else {
+        document.getElementById('manual-form').style.display = 'none';
+        document.getElementById('ocr-form').style.display = 'block';
+    }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    const today = new Date().toISOString().split('T')[0];
+    const dateInput = document.querySelector('input[name="date"]');
+    if (dateInput) {
+        dateInput.value = today;
+    }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,402 @@
+{% extends "base.html" %}
+
+{% block content %}
+<style>
+    :root {
+        --peace-green: #2ecc71;
+        --peace-blue: #3498db;
+        --peace-red: #e74c3c;
+        --peace-gray: #95a5a6;
+        --peace-light: #f8f9fa;
+        --peace-border: #e9ecef;
+        --peace-text: #2c3e50;
+        --peace-text-light: #7f8c8d;
+    }
+
+    .debt-header {
+        margin-bottom: 30px;
+    }
+
+    .debt-header h2 {
+        font-size: 24px;
+        font-weight: 500;
+        color: var(--peace-text);
+        margin: 0;
+    }
+
+    /* Debt Summary - Clean cards */
+    .debt-stats-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 20px;
+        margin-bottom: 40px;
+    }
+
+    .debt-stat-card {
+        background: white;
+        border-radius: 16px;
+        padding: 20px;
+        border: 1px solid var(--peace-border);
+        text-align: left;
+    }
+
+    .debt-stat-card .accent-line {
+        width: 40px;
+        height: 3px;
+        border-radius: 3px;
+        margin-bottom: 15px;
+    }
+
+    .debt-stat-card:nth-child(1) .accent-line { background: var(--peace-green); }
+    .debt-stat-card:nth-child(2) .accent-line { background: var(--peace-red); }
+    .debt-stat-card:nth-child(3) .accent-line { background: #f1c40f; }
+
+    .debt-stat-card h4 {
+        font-size: 13px;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        color: var(--peace-text-light);
+        margin-bottom: 8px;
+    }
+
+    .debt-stat-card .amount {
+        font-size: 32px;
+        font-weight: 600;
+        color: var(--peace-text);
+    }
+
+    /* Debt containers */
+    .debt-container {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 25px;
+        margin-bottom: 30px;
+    }
+
+    .debt-card {
+        background: white;
+        border-radius: 16px;
+        border: 1px solid var(--peace-border);
+        overflow: hidden;
+    }
+
+    .debt-card-header {
+        padding: 18px 20px;
+        border-bottom: 1px solid var(--peace-border);
+        background: var(--peace-light);
+    }
+
+    .debt-card-header h3 {
+        font-size: 16px;
+        font-weight: 500;
+        color: var(--peace-text);
+        margin: 0;
+    }
+
+    .debt-card-header h3 i {
+        margin-right: 8px;
+        color: var(--peace-text-light);
+    }
+
+    /* Tiny accent for debt cards */
+    .debt-card:first-child .debt-card-header {
+        border-left: 3px solid var(--peace-green);
+    }
+
+    .debt-card:last-child .debt-card-header {
+        border-left: 3px solid var(--peace-red);
+    }
+
+    .debt-card-body {
+        padding: 15px;
+        max-height: 350px;
+        overflow-y: auto;
+    }
+
+    .debt-item {
+        padding: 12px;
+        border-bottom: 1px solid var(--peace-border);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .debt-item:last-child {
+        border-bottom: none;
+    }
+
+    .debt-person {
+        font-weight: 500;
+        color: var(--peace-text);
+        margin-bottom: 4px;
+    }
+
+    .debt-amount {
+        font-weight: 600;
+        font-size: 16px;
+    }
+
+    .debt-card:first-child .debt-amount {
+        color: var(--peace-green);
+    }
+
+    .debt-card:last-child .debt-amount {
+        color: var(--peace-red);
+    }
+
+    .debt-description {
+        font-size: 12px;
+        color: var(--peace-text-light);
+        margin-top: 3px;
+    }
+
+    .debt-date {
+        font-size: 11px;
+        color: var(--peace-text-light);
+    }
+
+    .toggle-btn {
+        background: none;
+        border: 1px solid var(--peace-border);
+        padding: 5px 12px;
+        border-radius: 20px;
+        font-size: 11px;
+        cursor: pointer;
+        text-decoration: none;
+        color: var(--peace-text);
+        transition: all 0.2s;
+    }
+
+    .toggle-btn:hover {
+        background: var(--peace-green);
+        color: white;
+        border-color: var(--peace-green);
+    }
+
+    .toggle-btn.paid:hover {
+        background: var(--peace-gray);
+        border-color: var(--peace-gray);
+    }
+
+    /* Add Debt Form */
+    .add-debt-form {
+        background: white;
+        border-radius: 16px;
+        padding: 25px;
+        border: 1px solid var(--peace-border);
+        margin-top: 20px;
+    }
+
+    .add-debt-form h3 {
+        font-size: 16px;
+        font-weight: 500;
+        color: var(--peace-text);
+        margin-bottom: 20px;
+        padding-bottom: 12px;
+        border-bottom: 1px solid var(--peace-border);
+    }
+
+    .type-selector {
+        display: flex;
+        gap: 15px;
+        margin-bottom: 20px;
+    }
+
+    .type-option {
+        flex: 1;
+        padding: 12px;
+        border: 1px solid var(--peace-border);
+        border-radius: 12px;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .type-option.selected {
+        border-color: var(--peace-green);
+        background: var(--peace-light);
+    }
+
+    .form-control {
+        width: 100%;
+        padding: 10px 12px;
+        border: 1px solid var(--peace-border);
+        border-radius: 8px;
+    }
+
+    .form-control:focus {
+        outline: none;
+        border-color: var(--peace-green);
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 40px;
+        color: var(--peace-text-light);
+    }
+
+    .badge {
+        display: inline-block;
+        padding: 2px 8px;
+        border-radius: 12px;
+        font-size: 10px;
+        margin-left: 8px;
+        background: #f0f0f0;
+        color: var(--peace-text-light);
+    }
+
+    @media (max-width: 768px) {
+        .debt-stats-grid {
+            grid-template-columns: 1fr;
+        }
+        .debt-container {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+
+<div class="container">
+    <div class="debt-header">
+        <h2>Debt Management</h2>
+    </div>
+
+    <!-- Debt Summary - Clean cards -->
+    <div class="debt-stats-grid">
+        <div class="debt-stat-card">
+            <div class="accent-line"></div>
+            <h4>OWED TO ME</h4>
+            <div class="amount">{{ "%.2f"|format(total_owed_to_me) }} Birr</div>
+        </div>
+
+        <div class="debt-stat-card">
+            <div class="accent-line"></div>
+            <h4>I OWE OTHERS</h4>
+            <div class="amount">{{ "%.2f"|format(total_i_owe) }} Birr</div>
+        </div>
+
+        <div class="debt-stat-card">
+            <div class="accent-line"></div>
+            <h4>NET BALANCE</h4>
+            <div class="amount">
+                {% if net_balance >= 0 %}
+                    +{{ "%.2f"|format(net_balance) }} Birr
+                {% else %}
+                    {{ "%.2f"|format(net_balance) }} Birr
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="debt-container">
+        <!-- Owed to Me -->
+        <div class="debt-card">
+            <div class="debt-card-header">
+                <h3><i class="fas fa-arrow-down"></i> Owed to Me</h3>
+            </div>
+            <div class="debt-card-body">
+                {% if owed_to_me %}
+                    {% for debt in owed_to_me %}
+                    <div class="debt-item">
+                        <div>
+                            <div class="debt-person">{{ debt.person_name }}</div>
+                            <div class="debt-amount">{{ "%.2f"|format(debt.amount) }} Birr</div>
+                            {% if debt.description %}
+                            <div class="debt-description">{{ debt.description }}</div>
+                            {% endif %}
+                            <div class="debt-date">Added: {{ debt.date_added }}</div>
+                        </div>
+                        <form method="POST" action="{{ url_for('toggle_debt', id=debt.id) }}" style="display:inline;">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button type="submit" class="toggle-btn">Mark Paid</button>
+                        </form>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="empty-state">🎉 No one owes you money</div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- I Owe Others -->
+        <div class="debt-card">
+            <div class="debt-card-header">
+                <h3><i class="fas fa-arrow-up"></i> I Owe Others</h3>
+            </div>
+            <div class="debt-card-body">
+                {% if i_owe %}
+                    {% for debt in i_owe %}
+                    <div class="debt-item">
+                        <div>
+                            <div class="debt-person">{{ debt.person_name }}</div>
+                            <div class="debt-amount">{{ "%.2f"|format(debt.amount) }} Birr</div>
+                            {% if debt.description %}
+                            <div class="debt-description">{{ debt.description }}</div>
+                            {% endif %}
+                            <div class="debt-date">Added: {{ debt.date_added }}</div>
+                        </div>
+                        <form method="POST" action="{{ url_for('toggle_debt', id=debt.id) }}" style="display:inline;">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button type="submit" class="toggle-btn">Mark Paid</button>
+                        </form>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="empty-state">😊 You don't owe anyone</div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Debt Form -->
+    <div class="add-debt-form">
+        <h3><i class="fas fa-plus-circle"></i> Add New Debt</h3>
+        <form method="POST" action="{{ url_for('add_debt') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="type-selector" id="typeSelector">
+                <div class="type-option selected" onclick="selectType('owed_to_me')">
+                    <input type="radio" name="debt_type" value="owed_to_me" checked>
+                    📥 Someone owes me
+                </div>
+                <div class="type-option" onclick="selectType('i_owe')">
+                    <input type="radio" name="debt_type" value="i_owe">
+                    📤 I owe someone
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <input type="text" name="person_name" class="form-control" placeholder="Person name" required>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <input type="number" name="amount" step="0.01" class="form-control" placeholder="Amount (Birr)" required>
+                </div>
+                <div class="col-md-12 mb-3">
+                    <input type="text" name="description" class="form-control" placeholder="Description (optional)">
+                </div>
+                <div class="col-md-12 mb-3">
+                    <input type="date" name="due_date" class="form-control" placeholder="Due date (optional)">
+                </div>
+            </div>
+
+            <button type="submit" class="btn-primary w-100 py-2">
+                <i class="fas fa-plus-circle"></i> Add Debt
+            </button>
+        </form>
+    </div>
+</div>
+
+<script>
+function selectType(type) {
+    document.querySelectorAll('.type-option').forEach(opt => {
+        opt.classList.remove('selected');
+    });
+    if (type === 'owed_to_me') {
+        document.querySelector('.type-option:first-child').classList.add('selected');
+        document.querySelector('input[value="owed_to_me"]').checked = true;
+    } else {
+        document.querySelector('.type-option:last-child').classList.add('selected');
+        document.querySelector('input[value="i_owe"]').checked = true;
+    }
+}
+</script>
+{% endblock %}

@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+
+{% block content %}
+<style>
+    .upload-container {
+        max-width: 600px;
+        margin: 0 auto;
+        background: white;
+        padding: 30px;
+        border-radius: 10px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    .upload-area {
+        border: 2px dashed #ccc;
+        border-radius: 10px;
+        padding: 40px;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.3s;
+    }
+    .upload-area:hover {
+        border-color: #667eea;
+        background: #f8f9fa;
+    }
+    .file-input {
+        display: none;
+    }
+    .preview-image {
+        max-width: 100%;
+        max-height: 200px;
+        margin-top: 20px;
+        border-radius: 5px;
+    }
+    .format-tips {
+        background: #e7f3ff;
+        padding: 15px;
+        border-radius: 5px;
+        margin-top: 20px;
+    }
+</style>
+
+<div class="container">
+    <div class="upload-container">
+        <h2 class="text-center">📷 OCR Transaction Scanner</h2>
+        <p class="text-center text-muted">Upload a screenshot of your bank transaction or SMS</p>
+        
+        <form method="POST" action="{{ url_for('upload_ocr') }}" enctype="multipart/form-data" id="ocrForm">
+            <div class="upload-area" onclick="document.getElementById('fileInput').click()">
+                <i class="fas fa-cloud-upload-alt" style="font-size: 48px; color: #667eea;"></i>
+                <p>Click to select an image</p>
+                <p class="text-muted small">PNG, JPG, JPEG (Max 5MB)</p>
+                <input type="file" name="screenshot" id="fileInput" class="file-input" accept="image/*" required onchange="previewImage(this)">
+            </div>
+            
+            <div id="imagePreview" style="text-align: center; margin-top: 20px;"></div>
+            
+            <button type="submit" class="btn-submit" style="margin-top: 20px; width: 100%;">
+                🔍 Extract with OCR
+            </button>
+        </form>
+        
+        <div class="format-tips">
+            <i class="fas fa-lightbulb"></i> <strong>Tips for better OCR results:</strong>
+            <ul class="mt-2 mb-0">
+                <li>Use clear, high-contrast screenshots</li>
+                <li>Make sure the amount is clearly visible with "ETB" or "Birr"</li>
+                <li>Example formats recognized: "5000 ETB", "ETB 5000", "Amount: 5,000"</li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<script>
+function previewImage(input) {
+    const preview = document.getElementById('imagePreview');
+    if (input.files && input.files[0]) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            preview.innerHTML = `<img src="${e.target.result}" class="preview-image" alt="Preview">`;
+        }
+        reader.readAsDataURL(input.files[0]);
+    }
+}
+</script>
+{% endblock %}
