@@ -59,25 +59,24 @@ Many individuals and small business owners in Ethiopia struggle with:
 
 ## 📁 Project Structure
 expense-tracker/
-├── app.py # Main Flask application
-├── requirements.txt # Python dependencies
-├── templates/ # HTML templates
-│ ├── base.html # Main layout with sidebar
-│ ├── auth_base.html # Login/register layout
-│ ├── login.html # Login page
-│ ├── register.html # Registration page
-│ ├── dashboard.html # Dashboard with charts
-│ ├── add_expense.html # Add expense (manual + OCR)
-│ ├── transactions.html # View all transactions
-│ ├── debts.html # Debt tracking page
-│ ├── search.html # Search and filter
-│ └── ocr_confirm.html # OCR confirmation page
-├── static/ # Static assets
-│ ├── css/style.css # Custom styles
-│ ├── js/ # JavaScript files
-│ ├── icons/ # App icons (PWA)
-│ ├── manifest.json # PWA manifest
-│ └── sw.js # Service Worker
-├── uploads/ # Temporary upload folder
-└── instance/ # Database (auto-generated)
-
+|-app.py # Main Flask application
+|-requirements.txt # Python dependencies
+|-templates/ # HTML templates
+| |-base.html # Main layout with sidebar
+| |-auth_base.html # Login/register layout
+| |-login.html # Login page
+| |-register.html # Registration page
+| |-dashboard.html # Dashboard with charts
+| |-add_expense.html # Add expense (manual + OCR)
+| |-transactions.html # View all transactions
+| |-debts.html # Debt tracking page
+| |-search.html # Search and filter
+| |_ ocr_confirm.html # OCR confirmation page
+| - static/ # Static assets
+| |-css/style.css # Custom styles
+| |-js/ # JavaScript files
+| |- icons/ # App icons (PWA)
+| |- manifest.json # PWA manifest
+| |_ sw.js # Service Worker
+| -uploads/ # Temporary upload folder
+| |_ instance/ # Database (auto-generated)
