@@ -1,0 +1,172 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<incidents format="6" by="lint 8.9.1" type="conditional_incidents">
+
+    <incident
+        id="UnusedAttribute"
+        severity="warning"
+        message="">
+        <fix-data minSdk="21-∞" requiresApi="23-∞"/>
+        <location
+            file="${:app*debug*MAIN*sourceProvider*0*manifest*0}"
+            line="147"
+            column="28"
+            startOffset="5490"
+            endLine="147"
+            endColumn="53"
+            endOffset="5515"/>
+        <map>
+            <entry
+                name="message"
+                string="Attribute `autoVerify` is only used in API level 23 and higher (current min is %1$s)"/>
+            <api-levels id="minSdk"
+                value="21-∞"/>
+            <api-levels id="requiresApi"
+                value="23-∞"/>
+        </map>
+    </incident>
+
+    <incident
+        id="UnusedAttribute"
+        severity="warning"
+        message="">
+        <fix-data minSdk="21-∞" requiresApi="25-∞"/>
+        <location
+            file="${:app*debug*MAIN*sourceProvider*0*resDir*0}/xml/shortcuts.xml"
+            line="2"
+            column="15"
+            startOffset="85"
+            endLine="2"
+            endColumn="45"
+            endOffset="115"/>
+        <map>
+            <entry
+                name="message"
+                string="Attribute `shortcutId` is only used in API level 25 and higher (current min is %1$s)"/>
+            <api-levels id="minSdk"
+                value="21-∞"/>
+            <api-levels id="requiresApi"
+                value="25-∞"/>
+        </map>
+    </incident>
+
+    <incident
+        id="UnusedAttribute"
+        severity="warning"
+        message="">
+        <fix-data minSdk="21-∞" requiresApi="25-∞"/>
+        <location
+            file="${:app*debug*MAIN*sourceProvider*0*resDir*0}/xml/shortcuts.xml"
+            line="2"
+            column="105"
+            startOffset="175"
+            endLine="2"
+            endColumn="163"
+            endOffset="233"/>
+        <map>
+            <entry
+                name="message"
+                string="Attribute `shortcutShortLabel` is only used in API level 25 and higher (current min is %1$s)"/>
+            <api-levels id="minSdk"
+                value="21-∞"/>
+            <api-levels id="requiresApi"
+                value="25-∞"/>
+        </map>
+    </incident>
+
+    <incident
+        id="UnusedAttribute"
+        severity="warning"
+        message="">
+        <fix-data minSdk="21-∞" requiresApi="25-∞"/>
+        <location
+            file="${:app*debug*MAIN*sourceProvider*0*resDir*0}/xml/shortcuts.xml"
+            line="2"
+            column="164"
+            startOffset="234"
+            endLine="2"
+            endColumn="215"
+            endOffset="285"/>
+        <map>
+            <entry
+                name="message"
+                string="Attribute `shortcutLongLabel` is only used in API level 25 and higher (current min is %1$s)"/>
+            <api-levels id="minSdk"
+                value="21-∞"/>
+            <api-levels id="requiresApi"
+                value="25-∞"/>
+        </map>
+    </incident>
+
+    <incident
+        id="UnusedAttribute"
+        severity="warning"
+        message="">
+        <fix-data minSdk="21-∞" requiresApi="25-∞"/>
+        <location
+            file="${:app*debug*MAIN*sourceProvider*0*resDir*0}/xml/shortcuts.xml"
+            line="6"
+            column="15"
+            startOffset="635"
+            endLine="6"
+            endColumn="45"
+            endOffset="665"/>
+        <map>
+            <entry
+                name="message"
+                string="Attribute `shortcutId` is only used in API level 25 and higher (current min is %1$s)"/>
+            <api-levels id="minSdk"
+                value="21-∞"/>
+            <api-levels id="requiresApi"
+                value="25-∞"/>
+        </map>
+    </incident>
+
+    <incident
+        id="UnusedAttribute"
+        severity="warning"
+        message="">
+        <fix-data minSdk="21-∞" requiresApi="25-∞"/>
+        <location
+            file="${:app*debug*MAIN*sourceProvider*0*resDir*0}/xml/shortcuts.xml"
+            line="6"
+            column="105"
+            startOffset="725"
+            endLine="6"
+            endColumn="163"
+            endOffset="783"/>
+        <map>
+            <entry
+                name="message"
+                string="Attribute `shortcutShortLabel` is only used in API level 25 and higher (current min is %1$s)"/>
+            <api-levels id="minSdk"
+                value="21-∞"/>
+            <api-levels id="requiresApi"
+                value="25-∞"/>
+        </map>
+    </incident>
+
+    <incident
+        id="UnusedAttribute"
+        severity="warning"
+        message="">
+        <fix-data minSdk="21-∞" requiresApi="25-∞"/>
+        <location
+            file="${:app*debug*MAIN*sourceProvider*0*resDir*0}/xml/shortcuts.xml"
+            line="6"
+            column="164"
+            startOffset="784"
+            endLine="6"
+            endColumn="215"
+            endOffset="835"/>
+        <map>
+            <entry
+                name="message"
+                string="Attribute `shortcutLongLabel` is only used in API level 25 and higher (current min is %1$s)"/>
+            <api-levels id="minSdk"
+                value="21-∞"/>
+            <api-levels id="requiresApi"
+                value="25-∞"/>
+        </map>
+    </incident>
+
+</incidents>

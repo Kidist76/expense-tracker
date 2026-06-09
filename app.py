@@ -33,7 +33,7 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 # Session security
 app.config['SESSION_COOKIE_HTTPONLY'] = True
-app.config['SESSION_COOKIE_SECURE'] = os.getenv('SESSION_COOKIE_SECURE', 'False').lower() == 'true'
+app.config['SESSION_COOKIE_SECURE'] = os.getenv('FLASK_ENV') == 'production'  # HTTPS required in production
 app.config['PERMANENT_SESSION_LIFETIME'] = int(os.getenv('PERMANENT_SESSION_LIFETIME', 86400))
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 # File upload configuration
@@ -79,9 +79,13 @@ def add_security_headers(response):
     response.headers['X-XSS-Protection'] = '1; mode=block'
     response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
 
-    # Only add HSTS in production
-    if os.getenv('FLASK_ENV') == 'production':
-        response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'
+    # Always enable HSTS for HTTPS sites
+    response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'
+
+    # Disable caching - always fetch fresh content
+    response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
+    response.headers['Pragma'] = 'no-cache'
+    response.headers['Expires'] = '0'
 
     return response
 # ========== DATABASE MODELS ==========
