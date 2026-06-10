@@ -20,6 +20,15 @@ load_dotenv()
 app = Flask(__name__)
 app.secret_key = os.getenv('SECRET_KEY', 'your-secret-key-change-this-in-production')
 
+@app.after_request
+def add_cache_headers(response):
+    # Never cache HTML pages — always fetch fresh from server
+    if 'text/html' in response.content_type:
+        response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+        response.headers['Pragma'] = 'no-cache'
+        response.headers['Expires'] = '0'
+    return response
+
 # Initialize CSRF
 csrf = CSRFProtect(app)
 @app.after_request
