@@ -1,4 +1,0 @@
-#Tue Jun 09 02:28:42 PDT 2026
-base.0=D\:\\codingProjects\\expense-tracker\\app\\build\\intermediates\\dex\\release\\minifyReleaseWithR8\\classes.dex
-renamed.0=classes.dex
-path.0=classes.dex

@@ -317,7 +317,7 @@
             border-radius: 8px;
             margin-bottom: 20px;
         }
-        
+
         /* Toast notification style */
         .toast-notification {
             position: fixed;
@@ -331,7 +331,7 @@
             box-shadow: 0 4px 12px rgba(0,0,0,0.15);
             animation: fadeInOut 4s ease-in-out;
         }
-        
+
         @keyframes fadeInOut {
             0% { opacity: 0; transform: translateX(-50%) translateY(-20px); }
             10% { opacity: 1; transform: translateX(-50%) translateY(0); }
@@ -406,226 +406,108 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         // Sidebar toggle functionality
-        const menuBtn = document.getElementById('menuBtn');
-        const sidebar = document.getElementById('sidebar');
-        const mainContent = document.getElementById('mainContent');
+const menuBtn = document.getElementById('menuBtn');
+const sidebar = document.getElementById('sidebar');
+const mainContent = document.getElementById('mainContent');
 
-        menuBtn.addEventListener('click', function() {
-            sidebar.classList.toggle('open');
-            mainContent.classList.toggle('shifted');
+menuBtn.addEventListener('click', function() {
+  sidebar.classList.toggle('open');
+  mainContent.classList.toggle('shifted');
+});
+
+document.addEventListener('click', function(event) {
+  if (window.innerWidth <= 768) {
+    if (!sidebar.contains(event.target) && !menuBtn.contains(event.target)) {
+      sidebar.classList.remove('open');
+      mainContent.classList.remove('shifted');
+    }
+  }
+});
+
+// ── Auto-hide alerts ─────────────────────────────────────────
+setTimeout(function() {
+  document.querySelectorAll('.alert').forEach(function(alert) {
+    new bootstrap.Alert(alert).close();
+  });
+}, 4000);
+
+// ── Active link highlighting ─────────────────────────────────
+document.addEventListener('DOMContentLoaded', function() {
+  const currentPath = window.location.pathname;
+  document.querySelectorAll('.sidebar .nav-link').forEach(link => {
+    if (link.getAttribute('href') === currentPath) link.classList.add('active');
+  });
+});
+
+// ── Service Worker registration ──────────────────────────────
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/sw.js')
+    .then(async reg => {
+      console.log('✅ SW registered');
+      if (reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+      reg.addEventListener('updatefound', () => {
+        const newSW = reg.installing;
+        newSW.addEventListener('statechange', () => {
+          if (newSW.state === 'installed' && navigator.serviceWorker.controller)
+            newSW.postMessage({ type: 'SKIP_WAITING' });
         });
+      });
+    })
+    .catch(err => console.error('❌ SW failed:', err));
 
-        // Close sidebar when clicking outside on mobile
-        document.addEventListener('click', function(event) {
-            if (window.innerWidth <= 768) {
-                if (!sidebar.contains(event.target) && !menuBtn.contains(event.target)) {
-                    sidebar.classList.remove('open');
-                    mainContent.classList.remove('shifted');
-                }
-            }
-        });
+  let refreshing = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (!refreshing) { refreshing = true; window.location.reload(); }
+  });
+}
 
-        // Auto-hide alerts
-        setTimeout(function() {
-            document.querySelectorAll('.alert').forEach(function(alert) {
-                new bootstrap.Alert(alert).close();
-            });
-        }, 4000);
+// ── PWA Install Prompt ───────────────────────────────────────
+let deferredPrompt;
+const installBtn = document.getElementById('installBtn');
 
-        // Active link highlighting
-        document.addEventListener('DOMContentLoaded', function() {
-            const currentPath = window.location.pathname;
-            const navLinks = document.querySelectorAll('.sidebar .nav-link');
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredPrompt = e;
+  installBtn.style.display = 'flex';
+});
 
-            navLinks.forEach(link => {
-                if (link.getAttribute('href') === currentPath) {
-                    link.classList.add('active');
-                }
-            });
-        });
+installBtn.addEventListener('click', async () => {
+  if (deferredPrompt) {
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    console.log('Install outcome:', outcome);
+    deferredPrompt = null;
+    installBtn.style.display = 'none';
+  }
+});
 
-        // ========== PWA Service Worker Registration ==========
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('/sw.js')
-                .then(reg => console.log('✅ Service Worker registered!', reg))
-                .catch(err => console.log('❌ Service Worker failed:', err));
-        }
+window.addEventListener('appinstalled', () => {
+  installBtn.style.display = 'none';
+});
 
-        // ========== PWA Install Prompt ==========
-        let deferredPrompt;
-        const installBtn = document.getElementById('installBtn');
+// ── Toast notification ───────────────────────────────────────
+function showToast(message, type) {
+  const toast = document.createElement('div');
+  toast.className = `toast-notification alert alert-${type}`;
+  toast.textContent = message;
+  document.body.appendChild(toast);
+  setTimeout(() => toast.remove(), 4000);
+}
 
-        window.addEventListener('beforeinstallprompt', (e) => {
-            e.preventDefault();
-            deferredPrompt = e;
-            installBtn.style.display = 'flex';
-        });
+// ── Online/offline events ────────────────────────────────────
+window.addEventListener('online', async () => {
+  showToast('✅ Back online! Syncing your data...', 'success');
+  if ('serviceWorker' in navigator && 'SyncManager' in window) {
+    const reg = await navigator.serviceWorker.ready;
+    reg.sync.register('sync-expenses');
+    reg.sync.register('sync-debts');
+  }
+  setTimeout(() => window.location.reload(), 2000);
+});
 
-        installBtn.addEventListener('click', async () => {
-            if (deferredPrompt) {
-                deferredPrompt.prompt();
-                const { outcome } = await deferredPrompt.userChoice;
-                console.log(`User response to install: ${outcome}`);
-                deferredPrompt = null;
-                installBtn.style.display = 'none';
-            }
-        });
-
-        // Hide install button if already installed
-        window.addEventListener('appinstalled', () => {
-            installBtn.style.display = 'none';
-            console.log('App was installed!');
-        });
-        // OFFLINE SUPPORT - IndexedDB Storage and Form Interception
-        // Open IndexedDB
-        function openOfflineDB() {
-            return new Promise((resolve, reject) => {
-                const request = indexedDB.open('expense-tracker-db', 1);
-                
-                request.onupgradeneeded = function(e) {
-                    const db = e.target.result;
-                    if (!db.objectStoreNames.contains('pending-expenses')) {
-                        db.createObjectStore('pending-expenses', { keyPath: 'id', autoIncrement: true });
-                    }
-                    if (!db.objectStoreNames.contains('pending-debts')) {
-                        db.createObjectStore('pending-debts', { keyPath: 'id', autoIncrement: true });
-                    }
-                    console.log('IndexedDB object stores created');
-                };
-                
-                request.onsuccess = e => resolve(e.target.result);
-                request.onerror = e => reject(e.target.error);
-            });
-        }
-
-        // Save expense for offline sync
-        async function saveExpenseForOffline(expenseData) {
-            try {
-                const db = await openOfflineDB();
-                const transaction = db.transaction(['pending-expenses'], 'readwrite');
-                const store = transaction.objectStore('pending-expenses');
-                
-                const record = {
-                    ...expenseData,
-                    synced: false,
-                    createdAt: new Date().toISOString()
-                };
-                
-                store.add(record);
-                
-                // Register background sync
-                if ('serviceWorker' in navigator && 'SyncManager' in window) {
-                    const registration = await navigator.serviceWorker.ready;
-                    await registration.sync.register('sync-expenses');
-                }
-                
-                console.log('Expense saved for offline sync');
-                showToast('📱 Saved offline. Will sync when online.', 'warning');
-                return true;
-            } catch (err) {
-                console.error('Failed to save expense offline:', err);
-                return false;
-            }
-        }
-
-        // Save debt for offline sync
-        async function saveDebtForOffline(debtData) {
-            try {
-                const db = await openOfflineDB();
-                const transaction = db.transaction(['pending-debts'], 'readwrite');
-                const store = transaction.objectStore('pending-debts');
-                
-                const record = {
-                    ...debtData,
-                    synced: false,
-                    createdAt: new Date().toISOString()
-                };
-                
-                store.add(record);
-                
-                // Register background sync
-                if ('serviceWorker' in navigator && 'SyncManager' in window) {
-                    const registration = await navigator.serviceWorker.ready;
-                    await registration.sync.register('sync-debts');
-                }
-                
-                console.log('Debt saved for offline sync');
-                showToast('📱 Saved offline. Will sync when online.', 'warning');
-                return true;
-            } catch (err) {
-                console.error('Failed to save debt offline:', err);
-                return false;
-            }
-        }
-
-        // Show toast notification
-        function showToast(message, type) {
-            const toast = document.createElement('div');
-            toast.className = `toast-notification alert alert-${type}`;
-            toast.textContent = message;
-            document.body.appendChild(toast);
-            setTimeout(() => toast.remove(), 4000);
-        }
-
-        // Intercept form submissions for offline support
-        document.addEventListener('DOMContentLoaded', function() {
-            // Handle expense form submission
-            const expenseForm = document.querySelector('form[action*="add_expense"]');
-            if (expenseForm) {
-                expenseForm.addEventListener('submit', async function(e) {
-                    if (!navigator.onLine) {
-                        e.preventDefault();
-                        const formData = new FormData(expenseForm);
-                        const expenseData = {};
-                        formData.forEach((value, key) => { expenseData[key] = value; });
-                        await saveExpenseForOffline(expenseData);
-                        // Optionally redirect or clear form
-                        expenseForm.reset();
-                        // Set default date to today
-                        const dateInput = expenseForm.querySelector('input[name="date"]');
-                        if (dateInput) {
-                            dateInput.value = new Date().toISOString().split('T')[0];
-                        }
-                    }
-                });
-            }
-            
-            // Handle debt form submission
-            const debtForm = document.querySelector('form[action*="add_debt"]');
-            if (debtForm) {
-                debtForm.addEventListener('submit', async function(e) {
-                    if (!navigator.onLine) {
-                        e.preventDefault();
-                        const formData = new FormData(debtForm);
-                        const debtData = {};
-                        formData.forEach((value, key) => { debtData[key] = value; });
-                        await saveDebtForOffline(debtData);
-                        debtForm.reset();
-                    }
-                });
-            }
-        });
-
-        // Auto-sync when back online
-        window.addEventListener('online', async () => {
-            console.log('[App] Back online — triggering background sync');
-            showToast('Back online! Syncing your data...', 'success');
-            if ('serviceWorker' in navigator && 'SyncManager' in window) {
-                const registration = await navigator.serviceWorker.ready;
-                await registration.sync.register('sync-expenses');
-                await registration.sync.register('sync-debts');
-            }
-            // Also reload the page to refresh data
-            setTimeout(() => {
-                window.location.reload();
-            }, 2000);
-        });
-
-        // Show offline notification
-        window.addEventListener('offline', () => {
-            console.log('[App] Gone offline');
-            showToast('You are offline. Changes will sync when reconnected.', 'warning');
-        });
+window.addEventListener('offline', () => {
+  showToast('📵 You are offline. Changes will sync when reconnected.', 'warning');
+});
     </script>
 </body>
 </html>

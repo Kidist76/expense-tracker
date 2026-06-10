@@ -234,6 +234,12 @@
 </style>
 
 <div class="container">
+    <div class="mb-3">
+        <button id="syncBtn" class="btn-primary" style="background: #ff9800;">
+            <i class="fas fa-sync-alt"></i> Sync Offline Data
+        </button>
+        <span id="syncStatus" class="ms-2"></span>
+    </div>
     <div class="dashboard-header">
         <h2>Financial Dashboard</h2>
     </div>
@@ -300,7 +306,7 @@
             <div class="expense-item">
                 <div class="expense-info">
                     <div class="expense-description">
-                        {% if expense.category == 'Food' %}🍔
+                        {% if expense.category == 'Food' %}🥘
                         {% elif expense.category == 'Transport' %}🚗
                         {% elif expense.category == 'Utilities' %}💡
                         {% elif expense.category == 'Shopping' %}🛍️

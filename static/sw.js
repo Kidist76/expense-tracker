@@ -34,7 +34,7 @@ const NEVER_CACHE = [
   '/export_data',
 ];
 
-// ── Page routes – network first ──────────────────────────────
+// Page routes – network first
 const PAGE_ROUTES = [
   '/dashboard',
   '/transactions',
@@ -43,9 +43,9 @@ const PAGE_ROUTES = [
   '/add_expense_page',
 ];
 
-// ============================================================
+
 //  INSTALL – pre-cache app shell
-// ============================================================
+
 self.addEventListener('install', event => {
   console.log(`[SW ${SW_VERSION}] Installing…`);
 
@@ -69,9 +69,7 @@ self.addEventListener('install', event => {
   );
 });
 
-// ============================================================
 //  ACTIVATE – clean up old caches, take control
-// ============================================================
 self.addEventListener('activate', event => {
   console.log(`[SW ${SW_VERSION}] Activating…`);
 
@@ -93,9 +91,9 @@ self.addEventListener('activate', event => {
   );
 });
 
-// ============================================================
+
 //  FETCH – route to correct strategy
-// ============================================================
+
 self.addEventListener('fetch', event => {
   const { request } = event;
   const url = new URL(request.url);
@@ -113,25 +111,24 @@ self.addEventListener('fetch', event => {
     return;
   }
 
-  // ── Local static files (/static/*) → Cache First ─────────
+  // ── Local static files (/static/*) → Cache First
   if (url.pathname.startsWith('/static/')) {
     event.respondWith(cacheFirst(request, STATIC_CACHE));
     return;
   }
 
-  // ── Page routes → Network First ───────────────────────────
-  if (PAGE_ROUTES.some(route => url.pathname === route || url.pathname.startsWith(route))) {
-    event.respondWith(networkFirst(request, DYNAMIC_CACHE));
+// ── Page routes → Stale-While-Revalidate
+// Serves cached page instantly, updates cache in background.
+// bustPageCache() in the forms deletes stale entries after mutations.
+if (PAGE_ROUTES.some(route => url.pathname === route || url.pathname.startsWith(route))) {
+    event.respondWith(staleWhileRevalidate(request, DYNAMIC_CACHE));
     return;
-  }
-
+}
   // ── Everything else → Stale-While-Revalidate ─────────────
   event.respondWith(staleWhileRevalidate(request, DYNAMIC_CACHE));
 });
 
-// ============================================================
 //  STRATEGIES
-// ============================================================
 
 /**
  * Cache First
@@ -188,9 +185,8 @@ async function staleWhileRevalidate(request, cacheName) {
   return cached || (await networkFetch) || offlineFallback(request);
 }
 
-// ============================================================
 //  HELPERS
-// ============================================================
+
 
 /**
  * Save a response to a named cache.
@@ -369,15 +365,22 @@ async function syncPendingDebts() {
   }
 }
 
-// ── IDB helpers used by sync functions ──────────────────────
+//   IDB helpers used by sync functions
+
 function openIDB() {
   return new Promise((resolve, reject) => {
-    const req = indexedDB.open('expense-tracker-db', 1);
+    const req = indexedDB.open('expense-tracker-db', 2);
+    req.onupgradeneeded = e => {
+      const db = e.target.result;
+      if (!db.objectStoreNames.contains('pending-expenses'))
+        db.createObjectStore('pending-expenses', { keyPath: 'id', autoIncrement: true });
+      if (!db.objectStoreNames.contains('pending-debts'))
+        db.createObjectStore('pending-debts', { keyPath: 'id', autoIncrement: true });
+    };
     req.onsuccess = e => resolve(e.target.result);
     req.onerror   = e => reject(e.target.error);
   });
 }
-
 function getAllPending(db, storeName) {
   return new Promise((resolve, reject) => {
     const tx  = db.transaction(storeName, 'readonly');
@@ -396,7 +399,7 @@ function deleteFromIDB(db, storeName, id) {
   });
 }
 
-// ============================================================
+
 //  PUSH NOTIFICATIONS
 //  Send reminders for overdue debts from your Flask backend.
 // ============================================================
@@ -443,4 +446,7 @@ self.addEventListener('notificationclick', event => {
         if (clients.openWindow) return clients.openWindow(targetUrl);
       })
   );
+ // Allow pages to activate waiting SW immediately
+self.addEventListener('message', event => {
+  if (event.data?.type === 'SKIP_WAITING') self.skipWaiting();
 });
