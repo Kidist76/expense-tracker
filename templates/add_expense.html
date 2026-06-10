@@ -19,8 +19,8 @@
         transition: all 0.3s;
     }
     .method-btn.active {
-        color: #007bff;
-        border-bottom: 3px solid #007bff;
+        color: #2e7d32;
+        border-bottom: 3px solid #2e7d32;
         font-weight: bold;
     }
     .form-container {
@@ -47,7 +47,7 @@
         font-size: 14px;
     }
     .btn-submit {
-        background: #28a745;
+        background: #2e7d32;
         color: white;
         padding: 12px 30px;
         border: none;
@@ -57,7 +57,20 @@
         width: 100%;
     }
     .btn-submit:hover {
-        background: #218838;
+        background: #1b5e20;
+    }
+    .btn-add-category {
+        background: #6c757d;
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 14px;
+        width: auto;
+    }
+    .btn-add-category:hover {
+        background: #5a6268;
     }
     .ocr-preview {
         margin-top: 20px;
@@ -67,6 +80,49 @@
         border-radius: 5px;
         text-align: center;
     }
+    .category-row {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+    }
+    .category-row select {
+        flex: 1;
+    }
+    .new-category-row {
+        margin-top: 10px;
+        display: flex;
+        gap: 10px;
+    }
+    .new-category-row input {
+        flex: 1;
+    }
+    .hidden {
+        display: none;
+    }
+    /* Loading overlay for OCR */
+.loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.5);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+}
+.loading-spinner {
+    background: white;
+    padding: 20px 30px;
+    border-radius: 10px;
+    text-align: center;
+}
+.loading-spinner i {
+    font-size: 40px;
+    color: #2e7d32;
+    margin-bottom: 10px;
+}
 </style>
 
 <div class="container">
@@ -79,10 +135,11 @@
 
     <!-- Manual Entry Form -->
     <div id="manual-form" class="form-container">
-        <form method="POST" action="{{ url_for('add_expense') }}">
+        <form method="POST" action="{{ url_for('add_expense') }}" id="expenseForm">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
             <div class="form-group">
-                <label>💰 Amount (ETB):</label>
+                <label>💰 Amount (Birr):</label>
                 <input type="number" name="amount" step="0.01" required placeholder="e.g., 500.00">
             </div>
 
@@ -98,15 +155,33 @@
 
             <div class="form-group">
                 <label>🏷️ Category:</label>
-                <select name="category">
-                    <option value="Other" selected>📌 Let AI Categorize (Recommended)</option>
-                    <option value="Food">🥘Food</option>
-                    <option value="Transport">🚗 Transport</option>
-                    <option value="Utilities">💡 Utilities</option>
-                    <option value="Shopping">🛍️ Shopping</option>
-                    <option value="Healthcare">🏥 Healthcare</option>
-                    <option value="Education">📚 Education</option>
-                </select>
+                <div class="category-row">
+                    <select name="category" id="categorySelect">
+                        <option value="Other" selected>🤖 Let AI Categorize (Recommended)</option>
+                        <option value="Food">🥘 Food</option>
+                        <option value="Transport">🚗 Transport</option>
+                        <option value="Utilities">💡 Utilities</option>
+                        <option value="Shopping">🛍️ Shopping</option>
+                        <option value="Healthcare">🏥 Healthcare</option>
+                        <option value="Education">📚 Education</option>
+                        <option value="Rent">🏠 Rent</option>
+                        <option value="Entertainment">🎬 Entertainment</option>
+                        {% if user_categories %}
+                            {% for cat in user_categories %}
+                            <option value="{{ cat.name }}">📌 {{ cat.name }}</option>
+                            {% endfor %}
+                        {% endif %}
+                        <option value="__new__" style="color: #2e7d32; font-weight: bold;">➕ Add New Category...</option>
+                    </select>
+                </div>
+
+                <!-- New Category Input (hidden by default) -->
+                <div id="newCategoryDiv" class="hidden">
+                    <div class="new-category-row">
+                        <input type="text" id="newCategoryName" placeholder="Enter new category name (max 50 characters)">
+                        <button type="button" id="confirmNewCategory" class="btn-add-category">➕ Add</button>
+                    </div>
+                </div>
             </div>
 
             <button type="submit" class="btn-submit">💾 Save Expense</button>
@@ -120,21 +195,22 @@
             <div class="form-group">
                 <label>📸 Upload Screenshot:</label>
                 <input type="file" name="screenshot" accept="image/*,.png,.jpg,.jpeg" required>
+                <small>Upload bank SMS or receipt screenshot</small>
             </div>
 
             <button type="submit" class="btn-submit">🔍 Extract with OCR</button>
         </form>
+
+        <div class="ocr-preview">
+            <i class="fas fa-info-circle"></i>
+            <p>Supported formats: PNG, JPG, JPEG</p>
+            <p>OCR will automatically extract: Amount, Date, Description</p>
+        </div>
     </div>
 </div>
 
 <script>
-        document.getElementById('manualBtn').addEventListener('click', function() {
-        showMethod('manual');
-    });
-    document.getElementById('ocrBtn').addEventListener('click', function() {
-        showMethod('ocr');
-    });
-
+// Show/hide manual vs OCR forms
 function showMethod(method) {
     const btns = document.querySelectorAll('.method-btn');
     btns.forEach(btn => btn.classList.remove('active'));
@@ -149,6 +225,75 @@ function showMethod(method) {
     }
 }
 
+// Show/hide new category input when "Add New Category" is selected
+document.getElementById('categorySelect').addEventListener('change', function() {
+    const newCategoryDiv = document.getElementById('newCategoryDiv');
+    if (this.value === '__new__') {
+        newCategoryDiv.classList.remove('hidden');
+        document.getElementById('newCategoryName').focus();
+    } else {
+        newCategoryDiv.classList.add('hidden');
+        document.getElementById('newCategoryName').value = '';
+    }
+});
+
+// Add new category via AJAX
+document.getElementById('confirmNewCategory').addEventListener('click', function() {
+    const newCatName = document.getElementById('newCategoryName').value.trim();
+
+    if (!newCatName) {
+        alert('❌ Please enter a category name');
+        return;
+    }
+
+    if (newCatName.length > 50) {
+        alert('❌ Category name must be 50 characters or less');
+        return;
+    }
+
+    // Check if category already exists in dropdown
+    const select = document.getElementById('categorySelect');
+    for (let i = 0; i < select.options.length; i++) {
+        if (select.options[i].value === newCatName) {
+            alert('⚠️ Category "' + newCatName + '" already exists');
+            return;
+        }
+    }
+
+    // Send AJAX request to add category
+    fetch('/add_category_ajax', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token() }}'
+        },
+        body: JSON.stringify({ category_name: newCatName })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Add new option to dropdown
+            const newOption = document.createElement('option');
+            newOption.value = data.category_name;
+            newOption.text = '📌 ' + data.category_name;
+            // Insert before the "Add New Category" option
+            select.insertBefore(newOption, select.options[select.options.length - 1]);
+            select.value = data.category_name;
+            // Hide the input and clear it
+            document.getElementById('newCategoryDiv').classList.add('hidden');
+            document.getElementById('newCategoryName').value = '';
+            alert('✅ Category "' + data.category_name + '" added!');
+        } else {
+            alert('❌ ' + data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('❌ Failed to add category. Please try again.');
+    });
+});
+
+// Set default date to today
 document.addEventListener('DOMContentLoaded', function() {
     const today = new Date().toISOString().split('T')[0];
     const dateInput = document.querySelector('input[name="date"]');
@@ -157,4 +302,55 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 </script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.querySelector('#manual-form form');
+    const submitBtn = form ? form.querySelector('button[type="submit"]') : null;
+
+    if (form && submitBtn) {
+        // Disable button on submit to prevent double-click
+        form.addEventListener('submit', function(e) {
+            if (submitBtn.disabled) {
+                e.preventDefault();
+                return false;
+            }
+            submitBtn.disabled = true;
+            submitBtn.textContent = '⏳ Saving... Please wait';
+            return true;
+        });
+
+        // Re-enable button after 5 seconds (timeout protection)
+        setTimeout(function() {
+            if (submitBtn.disabled) {
+                submitBtn.disabled = false;
+                submitBtn.textContent = '💾 Save Expense';
+                console.log('Button re-enabled after timeout');
+            }
+        }, 5000);
+    }
+});
+// Show loading overlay when OCR form is submitted
+const ocrForm = document.querySelector('#ocr-form form');
+if (ocrForm) {
+    ocrForm.addEventListener('submit', function() {
+        const overlay = document.getElementById('loadingOverlay');
+        if (overlay) overlay.style.display = 'flex';
+
+        const btn = this.querySelector('button[type="submit"]');
+        if (btn) {
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+        }
+        return true;
+    });
+}
+</script>
+<!-- Loading Overlay for OCR -->
+<div id="loadingOverlay" class="loading-overlay">
+    <div class="loading-spinner">
+        <i class="fas fa-spinner fa-spin"></i>
+        <p>Processing OCR... Please wait</p>
+        <small>This may take 10-30 seconds</small>
+    </div>
+</div>
 {% endblock %}

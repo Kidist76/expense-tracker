@@ -140,9 +140,19 @@ class Debt(db.Model):
     category = db.Column(db.String(50), default='Other')
     notes = db.Column(db.Text, default='')
 
+class UserCategory(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    name = db.Column(db.String(50), nullable=False)
+
+    __table_args__ = (db.UniqueConstraint('user_id', 'name', name='unique_user_category'),)
+
 # Create all database tables
 with app.app_context():
     db.create_all()
+   # db.engine.execute("CREATE INDEX IF NOT EXISTS idx_expense_user_id ON expense (user_id)")
+   # db.engine.execute("CREATE INDEX IF NOT EXISTS idx_expense_date ON expense (date)")
+   # db.engine.execute("CREATE INDEX IF NOT EXISTS idx_debt_user_id ON debt (user_id)")
 
 # ========== HELPER FUNCTIONS ==========
 
@@ -194,9 +204,10 @@ def extract_transaction_details(image_path):
         # Apply sharpening
         img = img.filter(ImageFilter.SHARPEN)
 
-        # Resize for better OCR
-        img = img.resize((img.width * 2, img.height * 2), Image.Resampling.LANCZOS)
-
+        if img.width > 1000:
+           img = img.resize((img.width // 2, img.height // 2), Image.Resampling.LANCZOS)
+        else:
+            img = img.resize((img.width * 2, img.height * 2), Image.Resampling.LANCZOS)
         # Extract text
         text = pytesseract.image_to_string(img)
 
@@ -469,7 +480,7 @@ def login():
         username = request.form.get('username', '').strip()
         password = request.form.get('password', '')
 
-        user = User.query.filter_by( username=request.form['username']).first()
+        user = User.query.filter_by(username=username).first()
 
         if user and user.check_password(password):
             session.clear()
@@ -685,7 +696,9 @@ def view_debts():
 @app.route('/add_expense_page')
 @login_required
 def add_expense_page():
-    return render_template('add_expense.html')
+    user_categories = UserCategory.query.filter_by(user_id=session['user_id']).all()
+    return render_template('add_expense.html', user_categories=user_categories)
+
 
 # ========== ACTION ROUTES ==========
 
@@ -693,6 +706,15 @@ def add_expense_page():
 @csrf.exempt
 @login_required
 def add_expense():
+        # Timeout protection – prevent duplicate submissions
+    last_submit = session.get('last_submit_time', 0)
+    current_time = datetime.now().timestamp()
+
+    if current_time - last_submit < 3:  # 3 seconds cooldown
+        flash('⏳ Please wait – your expense is being saved...', 'warning')
+        return redirect(url_for('view_transactions'))
+
+    session['last_submit_time'] = current_time
     try:
         amount = float(request.form.get('amount', 0))
         description = request.form.get('description', '')
@@ -949,6 +971,27 @@ def serve_service_worker():
 @app.route('/offline')
 def offline():
     return render_template('offline.html')
+
+@app.route('/add_category_ajax', methods=['POST'])
+@login_required
+def add_category_ajax():
+    import json
+    data = json.loads(request.data)
+    category_name = data.get('category_name', '').strip()
+
+    if not category_name or len(category_name) > 50:
+        return {'success': False, 'error': 'Category name must be 1-50 characters'}
+
+    existing = UserCategory.query.filter_by(user_id=session['user_id'], name=category_name).first()
+    if existing:
+        return {'success': False, 'error': 'Category already exists'}
+
+    new_cat = UserCategory(user_id=session['user_id'], name=category_name)
+    db.session.add(new_cat)
+    db.session.commit()
+
+    return {'success': True, 'category_name': category_name}
+
 # ========== RUN THE APP ==========
 if __name__ == '__main__':
     debug_mode = os.getenv('FLASK_ENV', 'development') == 'development'
