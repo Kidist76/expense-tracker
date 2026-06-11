@@ -210,137 +210,151 @@
 </div>
 
 <script>
-// ── Show/hide manual vs OCR tabs ──────────────────────────────
-function showMethod(method) {
-  document.querySelectorAll('.method-btn').forEach(b => b.classList.remove('active'));
-  event.target.classList.add('active');
-  document.getElementById('manual-form').style.display = method === 'manual' ? 'block' : 'none';
-  document.getElementById('ocr-form').style.display    = method === 'ocr'    ? 'block' : 'none';
-}
-
-// ── New-category dropdown ──────────────────────────────────────
-document.getElementById('categorySelect').addEventListener('change', function () {
-  const div = document.getElementById('newCategoryDiv');
-  if (this.value === '__new__') {
-    div.classList.remove('hidden');
-    document.getElementById('newCategoryName').focus();
-  } else {
-    div.classList.add('hidden');
-    document.getElementById('newCategoryName').value = '';
-  }
-});
-
-document.getElementById('confirmNewCategory').addEventListener('click', function () {
-  const name = document.getElementById('newCategoryName').value.trim();
-  if (!name)            { showBanner('❌ Please enter a category name', 'danger'); return; }
-  if (name.length > 50) { showBanner('❌ Category name must be 50 characters or less', 'danger'); return; }
-
-  const select = document.getElementById('categorySelect');
-  for (let i = 0; i < select.options.length; i++) {
-    if (select.options[i].value === name) { showBanner('⚠️ Category already exists', 'warning'); return; }
-  }
-
-  fetch('/add_category_ajax', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token() }}' },
-    body: JSON.stringify({ category_name: name })
-  })
-  .then(r => r.json())
-  .then(data => {
-    if (data.success) {
-      const opt = new Option('📌 ' + data.category_name, data.category_name);
-      select.insertBefore(opt, select.options[select.options.length - 1]);
-      select.value = data.category_name;
-      document.getElementById('newCategoryDiv').classList.add('hidden');
-      document.getElementById('newCategoryName').value = '';
-      showBanner('✅ Category added!', 'success');
-    } else {
-      showBanner('❌ ' + data.error, 'danger');
-    }
-  })
-  .catch(() => showBanner('❌ Failed to add category. Please try again.', 'danger'));
-});
-
-// ── OCR form loading overlay ───────────────────────────────────
-const ocrForm = document.querySelector('#ocr-form form');
-if (ocrForm) {
-  ocrForm.addEventListener('submit', function () {
-    const overlay = document.getElementById('loadingOverlay');
-    if (overlay) overlay.style.display = 'flex';
-    const btn = this.querySelector('button[type="submit"]');
-    if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...'; }
-  });
-}
-
-// ── Default date ───────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', function () {
+
+  console.log('[DEBUG] DOM ready');
+
+  // ── Show/hide tabs ──────────────────────────────────────
+  function showMethod(method) {
+    document.querySelectorAll('.method-btn').forEach(b => b.classList.remove('active'));
+    event.target.classList.add('active');
+    document.getElementById('manual-form').style.display = method === 'manual' ? 'block' : 'none';
+    document.getElementById('ocr-form').style.display    = method === 'ocr'    ? 'block' : 'none';
+  }
+  window.showMethod = showMethod; // expose to onclick
+
+  // ── Default date ────────────────────────────────────────
   const dateInput = document.querySelector('input[name="date"]');
   if (dateInput && !dateInput.value)
     dateInput.value = new Date().toISOString().split('T')[0];
-});
 
-//  EXPENSE FORM – single unified submit handler
-
-const expenseForm = document.getElementById('expenseForm');
-const submitBtn   = expenseForm?.querySelector('button[type="submit"]');
-
-if (expenseForm) {
-  expenseForm.addEventListener('submit', async function (e) {
-    e.preventDefault();   // always intercept — we decide whether to POST
-
-    const online = await isReallyOnline();
-
-    if (!online) {
-      // ── OFFLINE: queue in IndexedDB ──────────────────────
-      const data = {};
-      new FormData(expenseForm).forEach((v, k) => { if (k !== 'csrf_token') data[k] = v; });
-
-      const saved = await saveToIDB('pending-expenses', data);
-      if (saved) {
-        if ('serviceWorker' in navigator && 'SyncManager' in window) {
-          const reg = await navigator.serviceWorker.ready;
-          await reg.sync.register('sync-expenses');
-        }
-        showBanner('📱 Saved offline – will sync when you reconnect.', 'warning');
-        expenseForm.reset();
-        const dateInput = document.querySelector('input[name="date"]');
-        if (dateInput) dateInput.value = new Date().toISOString().split('T')[0];
-      } else {
-        showBanner('❌ Could not save offline. Please try again.', 'danger');
-      }
-
+  // ── Category dropdown ────────────────────────────────────
+  document.getElementById('categorySelect').addEventListener('change', function () {
+    const div = document.getElementById('newCategoryDiv');
+    if (this.value === '__new__') {
+      div.classList.remove('hidden');
+      document.getElementById('newCategoryName').focus();
     } else {
-      // ── ONLINE: submit normally, bust stale SW cache first ──
-      bustPageCache(['/dashboard', '/transactions']);
-      if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = '⏳ Saving…'; }
-      expenseForm.submit();
+      div.classList.add('hidden');
+      document.getElementById('newCategoryName').value = '';
     }
   });
-}
 
-// ── Trigger sync when back online ─────────────────────────────
-window.addEventListener('online', async () => {
-  bustPageCache(['/dashboard', '/transactions']);
-  if ('serviceWorker' in navigator && 'SyncManager' in window) {
-    const reg = await navigator.serviceWorker.ready;
-    reg.sync.register('sync-expenses');
-    reg.sync.register('sync-debts');
+  document.getElementById('confirmNewCategory').addEventListener('click', function () {
+    const name = document.getElementById('newCategoryName').value.trim();
+    if (!name)            { showBanner('❌ Please enter a category name', 'danger'); return; }
+    if (name.length > 50) { showBanner('❌ Max 50 characters', 'danger'); return; }
+
+    const select = document.getElementById('categorySelect');
+    for (let i = 0; i < select.options.length; i++) {
+      if (select.options[i].value === name) { showBanner('⚠️ Already exists', 'warning'); return; }
+    }
+
+    fetch('/add_category_ajax', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token() }}' },
+      body: JSON.stringify({ category_name: name })
+    })
+    .then(r => r.json())
+    .then(data => {
+      if (data.success) {
+        const opt = new Option('📌 ' + data.category_name, data.category_name);
+        select.insertBefore(opt, select.options[select.options.length - 1]);
+        select.value = data.category_name;
+        document.getElementById('newCategoryDiv').classList.add('hidden');
+        document.getElementById('newCategoryName').value = '';
+        showBanner('✅ Category added!', 'success');
+      } else { showBanner('❌ ' + data.error, 'danger'); }
+    })
+    .catch(() => showBanner('❌ Failed. Try again.', 'danger'));
+  });
+
+  // ── OCR overlay ──────────────────────────────────────────
+  const ocrForm = document.querySelector('#ocr-form form');
+  if (ocrForm) {
+    ocrForm.addEventListener('submit', function () {
+      const overlay = document.getElementById('loadingOverlay');
+      if (overlay) overlay.style.display = 'flex';
+      const btn = this.querySelector('button[type="submit"]');
+      if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...'; }
+    });
   }
-});
 
+  // ── Expense form submit ──────────────────────────────────
+  const expenseForm = document.getElementById('expenseForm');
+  const submitBtn   = expenseForm ? expenseForm.querySelector('button[type="submit"]') : null;
 
-//  SHARED UTILITIES
+  console.log('[DEBUG] expenseForm:', expenseForm ? 'FOUND' : 'NULL');
 
-/**
- * Real connectivity check: probes /manifest.json with no-cache.
- * navigator.onLine returns true even with captive portals / bad signal.
- */
+  if (expenseForm) {
+    expenseForm.addEventListener('submit', async function (e) {
+      e.preventDefault();
+      console.log('[DEBUG] submit intercepted');
+
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.textContent = '⏳ Checking…';
+      }
+
+      const online = await isReallyOnline();
+      console.log('[DEBUG] online:', online);
+
+      if (!online) {
+        const data = {};
+        new FormData(expenseForm).forEach((v, k) => { if (k !== 'csrf_token') data[k] = v; });
+        console.log('[DEBUG] saving to IDB:', JSON.stringify(data));
+
+        const saved = await saveToIDB('pending-expenses', data);
+        console.log('[DEBUG] saved:', saved);
+
+        if (saved) {
+          if ('serviceWorker' in navigator && 'SyncManager' in window) {
+            try {
+              const reg = await navigator.serviceWorker.ready;
+              await reg.sync.register('sync-expenses');
+            } catch(e) {
+              console.warn('[DEBUG] sync register failed:', e);
+            }
+          }
+          showBanner('📱 Saved offline – will sync when you reconnect.', 'warning');
+          expenseForm.reset();
+          const d = document.querySelector('input[name="date"]');
+          if (d) d.value = new Date().toISOString().split('T')[0];
+          if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = '💾 Save Expense'; }
+        } else {
+          showBanner('❌ Could not save offline.', 'danger');
+          if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = '💾 Save Expense'; }
+        }
+
+      } else {
+        bustPageCache(['/dashboard', '/transactions']);
+        expenseForm.submit();
+      }
+    });
+  }
+
+  // ── Online recovery ──────────────────────────────────────
+  window.addEventListener('online', async () => {
+    bustPageCache(['/dashboard', '/transactions']);
+    if ('serviceWorker' in navigator && 'SyncManager' in window) {
+      try {
+        const reg = await navigator.serviceWorker.ready;
+        reg.sync.register('sync-expenses');
+        reg.sync.register('sync-debts');
+      } catch(e) {}
+    }
+  });
+
+}); // end DOMContentLoaded
+
+// ── Utilities (outside DOMContentLoaded is fine) ────────────
+
 async function isReallyOnline() {
   try {
     const r = await fetch('/manifest.json', {
       method: 'HEAD',
       cache: 'no-store',
-      signal: AbortSignal.timeout(3000)
+      signal: AbortSignal.timeout(1000)
     });
     return r.ok;
   } catch {
@@ -348,7 +362,6 @@ async function isReallyOnline() {
   }
 }
 
-/** Delete named pages from every SW cache so next load re-fetches. */
 function bustPageCache(paths) {
   if (!('caches' in window)) return;
   caches.keys().then(names => {
@@ -371,7 +384,7 @@ async function saveToIDB(storeName, data) {
     });
     return new Promise(resolve => {
       tx.oncomplete = () => resolve(true);
-      tx.onerror    = (e) => { console.error('[IDB tx error]', e.target.error); resolve(false); };
+      tx.onerror = (e) => { console.error('[IDB tx error]', e.target.error); resolve(false); };
     });
   } catch (err) {
     console.error('[IDB open error]', err);
@@ -390,46 +403,26 @@ function openOfflineDB() {
         db.createObjectStore('pending-debts', { keyPath: 'id', autoIncrement: true });
     };
     req.onsuccess = () => resolve(req.result);
-    req.onerror   = () => reject(req.error);
+    req.onerror = () => reject(req.error);
   });
 }
 
-/** Inline banner — replaces all alert() calls. Auto-dismisses in 5s. */
 function showBanner(message, type = 'info') {
   const old = document.getElementById('sync-banner');
   if (old) old.remove();
-
   const colors = {
-    warning: { bg: '#fff3cd', color: '#856404', border: '#ffc107' },
-    danger:  { bg: '#f8d7da', color: '#721c24', border: '#f5c6cb' },
-    success: { bg: '#d4edda', color: '#155724', border: '#c3e6cb' },
-    info:    { bg: '#d1ecf1', color: '#0c5460', border: '#bee5eb' },
+    warning: { bg:'#fff3cd', color:'#856404', border:'#ffc107' },
+    danger:  { bg:'#f8d7da', color:'#721c24', border:'#f5c6cb' },
+    success: { bg:'#d4edda', color:'#155724', border:'#c3e6cb' },
+    info:    { bg:'#d1ecf1', color:'#0c5460', border:'#bee5eb' },
   };
   const c = colors[type] || colors.info;
-
   const el = document.createElement('div');
   el.id = 'sync-banner';
-  el.style.cssText = `
-    position:fixed; top:70px; left:50%; transform:translateX(-50%);
-    z-index:9998; min-width:300px; max-width:90%;
-    padding:12px 20px; border-radius:8px; text-align:center;
-    font-weight:500; box-shadow:0 4px 12px rgba(0,0,0,.15);
-    background:${c.bg}; color:${c.color}; border:1px solid ${c.border};
-    transition: opacity .4s;
-  `;
+  el.style.cssText = `position:fixed;top:70px;left:50%;transform:translateX(-50%);z-index:9998;min-width:300px;max-width:90%;padding:12px 20px;border-radius:8px;text-align:center;font-weight:500;box-shadow:0 4px 12px rgba(0,0,0,.15);background:${c.bg};color:${c.color};border:1px solid ${c.border};transition:opacity .4s;`;
   el.textContent = message;
   document.body.appendChild(el);
-  setTimeout(() => { el.style.opacity = '0'; setTimeout(() => el.remove(), 400); }, 5000);
+  setTimeout(() => { el.style.opacity='0'; setTimeout(()=>el.remove(),400); }, 5000);
 }
 </script>
-
-<!-- Loading Overlay for OCR -->
-<div id="loadingOverlay" class="loading-overlay">
-  <div class="loading-spinner">
-    <i class="fas fa-spinner fa-spin"></i>
-    <p>Processing OCR… Please wait</p>
-    <small>This may take 10–30 seconds</small>
-  </div>
-</div>
-
 {% endblock %}
